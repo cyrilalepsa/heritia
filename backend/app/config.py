@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import json
-from typing import Any, List, Union
+from typing import List
 
-from pydantic import Field, field_validator
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings
 
 
@@ -25,27 +24,22 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./heritia.db"
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
-    # Dev frontend; production uses app_base_url for Stripe return links
     frontend_url: str = "http://localhost:5174"
-    cors_origins: List[str] = Field(default_factory=lambda: list(DEFAULT_CORS_ORIGINS))
+    # Comma-separated string (Railway-safe). Avoid List[str] env JSON parsing issues.
+    cors_origins: str = Field(
+        default=",".join(DEFAULT_CORS_ORIGINS),
+        description="Comma-separated allowed CORS origins",
+    )
 
     class Config:
         env_prefix = "HERITIA_"
         env_file = ".env"
 
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, value: Any) -> Union[List[str], Any]:
-        if value is None or value == "":
-            return list(DEFAULT_CORS_ORIGINS)
-        if isinstance(value, list):
-            return value
-        if isinstance(value, str):
-            text = value.strip()
-            if text.startswith("["):
-                return json.loads(text)
-            return [part.strip() for part in text.split(",") if part.strip()]
-        return value
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def cors_origin_list(self) -> List[str]:
+        parts = [part.strip() for part in (self.cors_origins or "").split(",") if part.strip()]
+        return parts or list(DEFAULT_CORS_ORIGINS)
 
     @property
     def is_production(self) -> bool:
@@ -53,7 +47,6 @@ class Settings(BaseSettings):
 
     @property
     def public_app_url(self) -> str:
-        """Canonical public URL used for Stripe OAuth return/refresh links."""
         if self.is_production:
             return self.app_base_url.rstrip("/")
         return self.frontend_url.rstrip("/")

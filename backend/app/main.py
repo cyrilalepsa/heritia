@@ -12,7 +12,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title=settings.app_name, version="1.0.0")
 
 # CORS: localhost (dev) + https://heritia.neriacorp.com (prod)
-_cors_origins = list(dict.fromkeys(settings.cors_origins))
+_cors_origins = list(dict.fromkeys(settings.cors_origin_list))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
