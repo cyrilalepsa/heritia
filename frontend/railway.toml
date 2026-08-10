@@ -1,9 +1,10 @@
 [build]
-builder = "RAILPACK"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "npx serve -s dist -l $PORT"
+startCommand = "node server.mjs"
 healthcheckPath = "/"
-healthcheckTimeout = 30
+healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
