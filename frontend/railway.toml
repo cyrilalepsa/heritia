@@ -1,6 +1,5 @@
 [build]
 builder = "RAILPACK"
-buildCommand = "npm ci && npm run build"
 
 [deploy]
 startCommand = "npx serve -s dist -l $PORT"

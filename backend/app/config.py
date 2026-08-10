@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import List
+import json
+from typing import Any, List, Union
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -10,6 +11,7 @@ PRODUCTION_ORIGIN = "https://heritia.neriacorp.com"
 DEFAULT_CORS_ORIGINS = [
     "http://localhost:5174",
     PRODUCTION_ORIGIN,
+    "https://heritia-web-production.up.railway.app",
 ]
 
 
@@ -30,6 +32,20 @@ class Settings(BaseSettings):
     class Config:
         env_prefix = "HERITIA_"
         env_file = ".env"
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: Any) -> Union[List[str], Any]:
+        if value is None or value == "":
+            return list(DEFAULT_CORS_ORIGINS)
+        if isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            text = value.strip()
+            if text.startswith("["):
+                return json.loads(text)
+            return [part.strip() for part in text.split(",") if part.strip()]
+        return value
 
     @property
     def is_production(self) -> bool:
