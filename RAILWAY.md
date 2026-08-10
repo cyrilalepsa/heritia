@@ -1,23 +1,26 @@
 # HERITIA — Railway (2 services)
 
-Railpack ne peut pas builder la racine (`backend/` + `frontend/`).  
-Déployer **deux services** depuis `cyrilalepsa/heritia` :
+Cause de l’erreur Railpack initiale : un seul service à la racine (`backend/` + `frontend/`) ne peut pas être détecté.
 
-| Service | Root Directory | Start |
-|---------|----------------|--------|
-| `heritia-api` | `backend` | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
-| `heritia-web` | `frontend` | `npx serve -s dist -l $PORT` |
+## Services (projet `lovely-expression`)
 
-## Variables
+| Service | Root Directory | URL |
+|---------|----------------|-----|
+| `heritia-api` | `backend` | https://heritia-api-production.up.railway.app |
+| `heritia-web` | `frontend` | https://heritia-web-production.up.railway.app |
 
-**heritia-api**
-- `HERITIA_ENVIRONMENT=production`
-- `HERITIA_APP_BASE_URL=https://heritia.neriacorp.com`
-- `HERITIA_FRONTEND_URL=https://heritia.neriacorp.com`
-- `HERITIA_SECRET_KEY=...`
-- `HERITIA_STRIPE_SECRET_KEY=...`
-- `HERITIA_CORS_ORIGINS=["https://heritia.neriacorp.com"]`
+Repo GitHub : https://github.com/cyrilalepsa/heritia
 
-**heritia-web** (build-time Vite)
-- `VITE_API_URL=https://<heritia-api-public-url>/api`
-- `VITE_APP_URL=https://heritia.neriacorp.com`
+### heritia-api
+- Start : `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Health : `/api/health`
+- Vars : `HERITIA_ENVIRONMENT=production`, `HERITIA_APP_BASE_URL`, `HERITIA_FRONTEND_URL`, `HERITIA_SECRET_KEY`, …
+
+### heritia-web
+- Build : `frontend/Dockerfile`
+- Start : `node server.mjs`
+- Vars build : `VITE_API_URL=https://heritia-api-production.up.railway.app/api`, `VITE_APP_URL=https://heritia.neriacorp.com`
+- Runtime : aligner `PORT` et le **target port** du domaine (ex. `3000`)
+
+### Domaine custom
+Brancher `heritia.neriacorp.com` sur `heritia-web`, et éventuellement `api.heritia…` sur `heritia-api`.
