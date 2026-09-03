@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { LOGO_SRC } from "../../config/constants";
 import { api } from "../../services/api";
 
 export default function ForgotPasswordScreen() {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -12,6 +13,14 @@ export default function ForgotPasswordScreen() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const urlToken = searchParams.get("token");
+    if (urlToken) {
+      setToken(urlToken);
+      setStep("reset");
+    }
+  }, [searchParams]);
+
   async function requestReset(e) {
     e.preventDefault();
     setError("");
@@ -19,11 +28,10 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     try {
       const res = await api.forgotPassword({ email });
-      setMessage(res.message || "Email envoyé si le compte existe.");
-      if (res.dev_reset_token) {
-        setToken(res.dev_reset_token);
-        setStep("reset");
-      }
+      setMessage(
+        res.message ||
+          "Si un compte existe avec cet email, un lien de réinitialisation a été envoyé."
+      );
     } catch (err) {
       setError(err.message || "Impossible d'envoyer le lien");
     } finally {

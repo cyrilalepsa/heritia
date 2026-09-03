@@ -14,12 +14,12 @@ Repo GitHub : https://github.com/cyrilalepsa/heritia
 ### heritia-api
 - Start : `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - Health : `/api/health`
-- Vars : `HERITIA_ENVIRONMENT=production`, `HERITIA_APP_BASE_URL`, `HERITIA_FRONTEND_URL`, `HERITIA_SECRET_KEY`, …
+- Vars : `HERITIA_ENVIRONMENT=production`, `HERITIA_APP_BASE_URL`, `HERITIA_FRONTEND_URL`, `N2_MASTER_KEY`, `RESEND_API_KEY`, …
 
 ### heritia-web
 - Build : `frontend/Dockerfile`
 - Start : `node server.mjs`
-- Vars build : `VITE_API_URL=https://heritia-api-production.up.railway.app/api`, `VITE_APP_URL=https://heritia.neriacorp.com`
+- Vars build : `VITE_API_URL=https://heritia.neriacorp.com/api`, `VITE_APP_URL=https://heritia.neriacorp.com`
 - Runtime : aligner `PORT` et le **target port** du domaine (ex. `3000`)
 
 ### Domaine custom

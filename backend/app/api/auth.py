@@ -14,6 +14,7 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.services import auth as auth_service
+from app.services import email as email_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -49,11 +50,14 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
     if not user:
         return {"ok": True, "message": "If the email exists, a reset link was sent."}
     token = auth_service.create_reset_token(db, user)
-    # Dev stub: return token (replace with email delivery in production)
+    try:
+        email_service.send_password_reset_email(to_email=user.email, reset_token=token)
+    except Exception:
+        # Avoid email enumeration; delivery failures are logged server-side.
+        pass
     return {
         "ok": True,
         "message": "If the email exists, a reset link was sent.",
-        "dev_reset_token": token,
     }
 
 

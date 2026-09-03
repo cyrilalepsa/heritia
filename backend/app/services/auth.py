@@ -8,7 +8,7 @@ import bcrypt
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.config import JWT_APP, JWT_AUDIENCE, JWT_ISSUER, settings
 from app.models.user import User
 
 
@@ -28,15 +28,29 @@ def verify_password(plain: str, hashed: Optional[str]) -> bool:
 def create_access_token(subject: str) -> str:
     expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
     return jwt.encode(
-        {"sub": subject, "exp": expire},
-        settings.secret_key,
+        {
+            "sub": subject,
+            "exp": expire,
+            "iss": JWT_ISSUER,
+            "aud": JWT_AUDIENCE,
+            "app": JWT_APP,
+        },
+        settings.jwt_secret,
         algorithm=settings.algorithm,
     )
 
 
 def decode_access_token(token: str) -> Optional[str]:
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(
+            token,
+            settings.jwt_secret,
+            algorithms=[settings.algorithm],
+            audience=JWT_AUDIENCE,
+            issuer=JWT_ISSUER,
+        )
+        if payload.get("app") != JWT_APP:
+            return None
         sub = payload.get("sub")
         return str(sub) if sub else None
     except JWTError:
