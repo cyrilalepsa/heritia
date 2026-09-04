@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "dist");
 const port = Number(process.env.PORT || 3000);
+const appId = "HERITIA";
 
 const mime = {
   ".html": "text/html; charset=utf-8",
@@ -20,13 +21,34 @@ const mime = {
   ".webp": "image/webp",
 };
 
-function send(res, status, body, type) {
-  res.writeHead(status, { "Content-Type": type || "text/plain; charset=utf-8" });
+function send(res, status, body, type, extraHeaders = {}) {
+  res.writeHead(status, {
+    "Content-Type": type || "text/plain; charset=utf-8",
+    "X-Heritia-App": "1",
+    "X-App-Name": appId,
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    ...extraHeaders,
+  });
   res.end(body);
+}
+
+function readIndexTitle() {
+  try {
+    const html = fs.readFileSync(path.join(distDir, "index.html"), "utf8");
+    const match = html.match(/<title>([^<]+)<\/title>/i);
+    return match ? match[1] : "unknown";
+  } catch {
+    return "missing";
+  }
 }
 
 const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
+
+  if (urlPath === "/health") {
+    return send(res, 200, JSON.stringify({ status: "ok", app: appId }), "application/json");
+  }
+
   let filePath = path.join(distDir, urlPath === "/" ? "index.html" : urlPath);
   if (!filePath.startsWith(distDir)) {
     return send(res, 403, "Forbidden");
@@ -42,6 +64,10 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(port, "0.0.0.0", () => {
-  console.log(`HERITIA web listening on 0.0.0.0:${port}`);
+  const title = readIndexTitle();
+  console.log(`${appId} web listening on 0.0.0.0:${port} (dist title: ${title})`);
+  if (title !== appId) {
+    console.warn(`WARNING: dist/index.html title is "${title}", expected "${appId}"`);
+  }
   console.log("ready");
 });
