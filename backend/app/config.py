@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List
 
 from pydantic import Field, computed_field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 PRODUCTION_ORIGIN = "https://heritia.neriacorp.com"
@@ -13,8 +13,19 @@ DEFAULT_CORS_ORIGINS = [
     "https://heritia-web-production.up.railway.app",
 ]
 
+JWT_ISSUER = "neriacorp"
+JWT_AUDIENCE = "heritia"
+JWT_APP = "HERITIA"
+
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="HERITIA_",
+        env_file=".env",
+        populate_by_name=True,
+        extra="ignore",
+    )
+
     app_name: str = "HERITIA"
     environment: str = "development"  # development | production
     app_base_url: str = PRODUCTION_ORIGIN
@@ -25,21 +36,33 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     frontend_url: str = "http://localhost:5174"
-    # Comma-separated string (Railway-safe). Avoid List[str] env JSON parsing issues.
     cors_origins: str = Field(
         default=",".join(DEFAULT_CORS_ORIGINS),
         description="Comma-separated allowed CORS origins",
     )
 
-    class Config:
-        env_prefix = "HERITIA_"
-        env_file = ".env"
+    # N2 / shared NeriaCorp infrastructure (no HERITIA_ prefix)
+    n2_master_key: str = Field(default="", validation_alias="N2_MASTER_KEY")
+    resend_api_key: str = Field(default="", validation_alias="RESEND_API_KEY")
+    resend_from_email: str = Field(
+        default="heritia@neriacorp.com",
+        validation_alias="RESEND_FROM_EMAIL",
+    )
+    cloudinary_cloud_name: str = Field(default="", validation_alias="CLOUDINARY_CLOUD_NAME")
+    cloudinary_api_key: str = Field(default="", validation_alias="CLOUDINARY_API_KEY")
+    cloudinary_api_secret: str = Field(default="", validation_alias="CLOUDINARY_API_SECRET")
+    cloudinary_folder: str = Field(default="heritia", validation_alias="CLOUDINARY_FOLDER")
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origin_list(self) -> List[str]:
         parts = [part.strip() for part in (self.cors_origins or "").split(",") if part.strip()]
         return parts or list(DEFAULT_CORS_ORIGINS)
+
+    @property
+    def jwt_secret(self) -> str:
+        """Prefer N2 Master Key; fall back to local secret for development."""
+        return self.n2_master_key or self.secret_key
 
     @property
     def is_production(self) -> bool:
@@ -52,12 +75,28 @@ class Settings(BaseSettings):
         return self.frontend_url.rstrip("/")
 
     @property
+    def password_reset_url(self) -> str:
+        return "{0}/forgot-password".format(self.public_app_url)
+
+    @property
     def stripe_return_url(self) -> str:
         return "{0}/gamification?stripe=return".format(self.public_app_url)
 
     @property
     def stripe_refresh_url(self) -> str:
         return "{0}/gamification?stripe=refresh".format(self.public_app_url)
+
+    @property
+    def resend_configured(self) -> bool:
+        return bool(self.resend_api_key and self.resend_from_email)
+
+    @property
+    def cloudinary_configured(self) -> bool:
+        return bool(
+            self.cloudinary_cloud_name
+            and self.cloudinary_api_key
+            and self.cloudinary_api_secret
+        )
 
 
 settings = Settings()
