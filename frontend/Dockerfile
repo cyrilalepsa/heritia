@@ -6,7 +6,7 @@ RUN npm ci
 
 COPY . .
 
-ARG VITE_API_URL=https://heritia.neriacorp.com/api
+ARG VITE_API_URL=/api
 ARG VITE_APP_URL=https://heritia.neriacorp.com
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_APP_URL=$VITE_APP_URL

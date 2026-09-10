@@ -1,0 +1,60 @@
+{
+  "$schema": "https://neriacorp.com/schemas/n2-tenant-route/v1",
+  "tenant_id": "heritia",
+  "slug": "heritia",
+  "domain": "heritia.neriacorp.com",
+  "priority": 200,
+  "bypass_n2_shell": true,
+  "description": "HERITIA — assistant nutrition & recettes (zone B2C). Route dédiée via Single Ingress N2.",
+  "routes": [
+    {
+      "id": "heritia-api",
+      "match": { "path_prefix": "/api" },
+      "upstream_env": "HERITIA_API_UPSTREAM",
+      "upstream_default": "https://heritia-api-production.up.railway.app",
+      "proxy_headers": {
+        "Host": "${HERITIA_API_HOST:-heritia-api-production.up.railway.app}",
+        "X-Forwarded-Host": "heritia.neriacorp.com",
+        "X-Forwarded-Proto": "https",
+        "X-N2-Tenant": "heritia",
+        "X-N2-Route": "heritia-api"
+      },
+      "healthcheck": "/api/health",
+      "healthcheck_expect": { "app": "HERITIA" }
+    },
+    {
+      "id": "heritia-web",
+      "match": { "path_prefix": "/" },
+      "upstream_env": "HERITIA_WEB_UPSTREAM",
+      "upstream_default": "https://heritia-web-production.up.railway.app",
+      "spa": true,
+      "proxy_headers": {
+        "Host": "${HERITIA_WEB_HOST:-heritia-web-production.up.railway.app}",
+        "X-Forwarded-Host": "heritia.neriacorp.com",
+        "X-Forwarded-Proto": "https",
+        "X-N2-Tenant": "heritia",
+        "X-N2-Route": "heritia-web"
+      },
+      "healthcheck": "/health",
+      "healthcheck_expect": {
+        "header": "X-Heritia-App",
+        "value": "1",
+        "body": { "app": "HERITIA" }
+      }
+    }
+  ],
+  "cors": {
+    "allowed_origins": [
+      "https://heritia.neriacorp.com"
+    ],
+    "allow_credentials": true
+  },
+  "catalog": {
+    "id": "com.neriacorp.heritia",
+    "name": "HERITIA",
+    "zone": "B2C",
+    "urls": {
+      "app": "https://heritia.neriacorp.com"
+    }
+  }
+}

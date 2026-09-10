@@ -1,0 +1,22 @@
+{
+  "id": "https://heritia.neriacorp.com/",
+  "name": "HERITIA",
+  "short_name": "HERITIA",
+  "description": "Nutrition, recettes et anti-gaspillage alimentaire.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f0e8",
+  "theme_color": "#1a3a2f",
+  "lang": "fr",
+  "categories": ["food", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/assets/logos/heritia.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}

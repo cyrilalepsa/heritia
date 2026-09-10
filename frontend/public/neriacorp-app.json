@@ -1,0 +1,38 @@
+{
+  "id": "com.neriacorp.heritia",
+  "slug": "heritia",
+  "name": "HERITIA",
+  "tagline": "Nutrition, recettes & anti-gaspillage",
+  "description": "Application B2C nutrition et recettes — écosystème NeriaCorp.",
+  "zone": "B2C",
+  "ecosystem": "NeriaCorp",
+  "audience": "consumer",
+  "category": "health-nutrition",
+  "theme_color": "#1a3a2f",
+  "urls": {
+    "app": "https://heritia.neriacorp.com",
+    "api": "https://heritia.neriacorp.com/api",
+    "privacy": "https://heritia.neriacorp.com/profil"
+  },
+  "portal": {
+    "visible": true,
+    "zone": "B2C",
+    "featured": true,
+    "sort_order": 20
+  },
+  "ingress": {
+    "mode": "n2-single-ingress",
+    "domain": "heritia.neriacorp.com",
+    "bypass_n2_shell": true
+  },
+  "status": "active",
+  "version": "1.0.0",
+  "capabilities": [
+    "recipes",
+    "nutrition-scan",
+    "gamification",
+    "marketplace-ebooks",
+    "stripe-connect",
+    "pwa"
+  ]
+}
