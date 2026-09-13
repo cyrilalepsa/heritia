@@ -15,6 +15,66 @@ from n2.nsi.schemas import (
     TargetRadarFilter,
 )
 
+PROJECT_FAST_TRACK_PROFILES: dict[str, dict] = {
+    "heritia-core": {
+        "target_audience": "B2C — Particuliers",
+        "perimeter": "Scan perso, recettes, gamification XP, livres digitaux (100% autonome)",
+        "neria_radar_filters": TargetRadarFilter(structure_classes=["C1"], naf_codes=[]),
+        "recommended_actions": [
+            "Optimiser le funnel scan frigo → recette → livre digital",
+            "Renforcer la rétention gamification (XP, badges, cagnotte N2 native)",
+            "Itérer sur la précision OCR multi-ingrédients Cloudinary",
+        ],
+        "recommended_mvp": "PWA B2C : scan frigo + génération recettes + boutique ebooks Stripe.",
+        "export_label": "Exporter filtres B2C vers NeriaRadar",
+    },
+    "aevis-core": {
+        "target_audience": "B2B — Commerçants C2",
+        "perimeter": "POS tactile, stock et inventaire commerçants (100% autonome)",
+        "neria_radar_filters": TargetRadarFilter(
+            structure_classes=["C2"],
+            naf_codes=["4711D", "4719B", "4778C"],
+        ),
+        "recommended_actions": [
+            "Déployer le pilote POS tactile sur un panel TPE C2",
+            "Valider les alertes stock temps réel multi-postes",
+            "Préparer l'export comptable et l'onboarding commerçant",
+        ],
+        "recommended_mvp": "PWA POS tactile + inventaire + alertes stock pour commerçants C2.",
+        "export_label": "Exporter filtres commerçants C2 vers NeriaRadar",
+    },
+    "selys-core": {
+        "target_audience": "Particulier ↔ Artisan / Pro",
+        "perimeter": "Mise en relation, recrutement direct, Direct-Pay, Zero-Retention casier",
+        "neria_radar_filters": TargetRadarFilter(
+            structure_classes=["C2", "C3"],
+            naf_codes=["8121Z", "8122Z", "8130Z"],
+        ),
+        "recommended_actions": [
+            "Finaliser le workflow recrutement direct (micro-jobs, CDD, CDI)",
+            "Valider Direct-Pay hors flux NeriaCorp avec traçabilité légale",
+            "Auditer la purge Zero-Retention du casier judiciaire post-validation",
+        ],
+        "recommended_mvp": "Matching service + recrutement direct + Direct-Pay + purge casier.",
+        "export_label": "Exporter filtres artisans / pros vers NeriaRadar",
+    },
+    "selys-marketplace-core": {
+        "target_audience": "Membres N2O & commerces locaux",
+        "perimeter": "Vitrine locale géolocalisée, livraison, Ventes Privées N2O (distinct de Selys core)",
+        "neria_radar_filters": TargetRadarFilter(
+            structure_classes=["C2"],
+            naf_codes=["4711D", "5610A", "5610B"],
+        ),
+        "recommended_actions": [
+            "Lancer la vitrine géolocalisée sur une zone pilote",
+            "Activer les Ventes Privées / Bons Plans membres N2O",
+            "Tester la logistique livraison locale multi-commerçants",
+        ],
+        "recommended_mvp": "Marketplace locale : catalogue géo + commandes + Ventes Privées N2O.",
+        "export_label": "Exporter filtres marketplace locale vers NeriaRadar",
+    },
+}
+
 
 def _project_out(row: NsiProject) -> NsiProjectOut:
     return NsiProjectOut(
@@ -22,6 +82,8 @@ def _project_out(row: NsiProject) -> NsiProjectOut:
         project_id=row.project_id,
         name=row.name,
         category=row.category,
+        target_audience=getattr(row, "target_audience", "") or "",
+        perimeter=getattr(row, "perimeter", "") or "",
         maturity_score=row.maturity_score,
         status=row.status,
         technical_barriers=row.technical_barriers or [],
@@ -68,6 +130,8 @@ def upsert_project(db: Session, payload: NsiProjectIn) -> NsiProjectOut:
             project_id=data["project_id"],
             name=data["name"],
             category=data["category"],
+            target_audience=data.get("target_audience", ""),
+            perimeter=data.get("perimeter", ""),
             maturity_score=data["maturity_score"],
             status=data["status"],
             technical_barriers=data["technical_barriers"],
@@ -78,6 +142,8 @@ def upsert_project(db: Session, payload: NsiProjectIn) -> NsiProjectOut:
     else:
         row.name = data["name"]
         row.category = data["category"]
+        row.target_audience = data.get("target_audience", "")
+        row.perimeter = data.get("perimeter", "")
         row.maturity_score = data["maturity_score"]
         row.status = data["status"]
         row.technical_barriers = data["technical_barriers"]
@@ -107,27 +173,26 @@ def _opportunity_badge(impact_score: int) -> str:
 
 def build_fast_track_kit(db: Session, *, project_id: str, signal_title: str, impact_score: int) -> FastTrackKit:
     project = db.query(NsiProject).filter(NsiProject.project_id == project_id).first()
-    stepping = (project.stepping_stone_projects or [{}])[0] if project else {}
-    radar = stepping.get("target_radar_filter") or {}
-    filters = TargetRadarFilter(
-        structure_classes=radar.get("structure_classes") or ["C2"],
-        naf_codes=radar.get("naf_codes") or ["5610A", "5610B", "5621Z"],
-    )
+    profile = PROJECT_FAST_TRACK_PROFILES.get(project_id, PROJECT_FAST_TRACK_PROFILES["heritia-core"])
+
+    target_audience = profile["target_audience"]
+    perimeter = profile["perimeter"]
+    if project:
+        if getattr(project, "target_audience", ""):
+            target_audience = project.target_audience
+        if getattr(project, "perimeter", ""):
+            perimeter = project.perimeter
+
     return FastTrackKit(
         project_id=project_id,
         signal_title=signal_title,
         opportunity_badge=_opportunity_badge(impact_score),
-        neria_radar_filters=filters,
-        portal_actions=[
-            "Publier l'outil de gestion de stock sur le Portail B2B",
-            stepping.get("synergy_portal") or "Publication des outils de gestion de stock sur le Portail B2B.",
-        ],
-        selys_actions=[
-            "Activer le flux surstocks → Ventes Privées Selys Marketplace",
-            stepping.get("synergy_selys") or "Basculement des invendus vers Selys Marketplace.",
-        ],
-        recommended_mvp=stepping.get("mvp_scope") or "MVP PWA stock cuisine + alertes DLC.",
-        export_label="Exporter les filtres vers NeriaRadar",
+        target_audience=target_audience,
+        perimeter=perimeter,
+        neria_radar_filters=profile["neria_radar_filters"],
+        recommended_actions=profile["recommended_actions"],
+        recommended_mvp=profile["recommended_mvp"],
+        export_label=profile["export_label"],
     )
 
 

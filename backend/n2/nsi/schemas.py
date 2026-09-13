@@ -16,8 +16,6 @@ class SteppingStoneProject(BaseModel):
     target_segment: str
     mvp_scope: str
     estimated_mrr_per_client: float
-    synergy_portal: str
-    synergy_selys: str
     target_radar_filter: TargetRadarFilter = Field(default_factory=TargetRadarFilter)
 
 
@@ -25,6 +23,8 @@ class NsiProjectIn(BaseModel):
     project_id: str = Field(min_length=1, max_length=64)
     name: str
     category: str = ""
+    target_audience: str = ""
+    perimeter: str = ""
     maturity_score: int = Field(default=0, ge=0, le=100)
     status: str = "draft"
     technical_barriers: List[str] = Field(default_factory=list)
@@ -68,9 +68,10 @@ class FastTrackKit(BaseModel):
     project_id: str
     signal_title: str
     opportunity_badge: str
+    target_audience: str
+    perimeter: str
     neria_radar_filters: TargetRadarFilter
-    portal_actions: List[str]
-    selys_actions: List[str]
+    recommended_actions: List[str]
     recommended_mvp: str
     export_label: str
 

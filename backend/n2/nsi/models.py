@@ -15,6 +15,8 @@ class NsiProject(Base):
     project_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     category: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    target_audience: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    perimeter: Mapped[str] = mapped_column(Text, nullable=False, default="")
     maturity_score: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(64), nullable=False, default="draft")
     technical_barriers: Mapped[list] = mapped_column(JSON, default=list)

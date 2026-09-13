@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from app.database import Base, SessionLocal, engine
 from app.main import app
-from n2.nsi.seed import seed_nsi_defaults
+from n2.nsi.seed import CANONICAL_PROJECT_IDS, seed_nsi_defaults
 
 Base.metadata.create_all(bind=engine)
 
@@ -25,14 +25,22 @@ def _seed_db():
     db.close()
 
 
-def test_projects_lists_seeded_heritia_core():
+def test_projects_lists_four_canonical_projects():
     response = client.get("/api/n2/nsi/projects")
     assert response.status_code == 200
     data = response.json()
-    assert any(item["project_id"] == "heritia-core" for item in data)
-    heritia = next(item for item in data if item["project_id"] == "heritia-core")
+    project_ids = {item["project_id"] for item in data}
+    assert project_ids == set(CANONICAL_PROJECT_IDS)
+
+
+def test_heritia_core_is_autonomous_b2c():
+    response = client.get("/api/n2/nsi/projects")
+    heritia = next(item for item in response.json() if item["project_id"] == "heritia-core")
     assert heritia["maturity_score"] == 85
-    assert len(heritia["stepping_stone_projects"]) >= 1
+    assert heritia["target_audience"] == "B2C — Particuliers"
+    assert heritia["stepping_stone_projects"] == []
+    assert "Selys" not in heritia["perimeter"]
+    assert "Aevis" not in heritia["perimeter"]
 
 
 def test_post_projects_rejects_missing_master_key():
@@ -67,7 +75,7 @@ def test_signals_analyze_requires_master_key():
     assert response.status_code == 401
 
 
-def test_signals_analyze_generates_fast_track():
+def test_signals_analyze_generates_autonomous_fast_track():
     response = client.post(
         "/api/n2/nsi/signals/analyze",
         json={
@@ -79,8 +87,24 @@ def test_signals_analyze_generates_fast_track():
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["fast_track"]["project_id"] == "heritia-core"
-    assert body["fast_track"]["neria_radar_filters"]["structure_classes"] == ["C2"]
+    fast_track = body["fast_track"]
+    assert fast_track["project_id"] == "heritia-core"
+    assert fast_track["neria_radar_filters"]["structure_classes"] == ["C1"]
+    assert fast_track["target_audience"] == "B2C — Particuliers"
+    assert "recommended_actions" in fast_track
+    assert "portal_actions" not in fast_track
+    assert "selys_actions" not in fast_track
+    assert all("Selys" not in action for action in fast_track["recommended_actions"])
+
+
+def test_selys_and_marketplace_are_separate_projects():
+    response = client.get("/api/n2/nsi/projects")
+    data = {item["project_id"]: item for item in response.json()}
+    assert "selys-core" in data
+    assert "selys-marketplace-core" in data
+    assert data["selys-core"]["name"] == "Selys"
+    assert data["selys-marketplace-core"]["name"] == "Selys Marketplace"
+    assert data["selys-core"]["project_id"] != data["selys-marketplace-core"]["project_id"]
 
 
 def test_cockpit_registry_contains_nsi():
