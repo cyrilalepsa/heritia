@@ -21,6 +21,7 @@ class NsiProject(Base):
     status: Mapped[str] = mapped_column(String(64), nullable=False, default="draft")
     technical_barriers: Mapped[list] = mapped_column(JSON, default=list)
     core_features: Mapped[list] = mapped_column(JSON, default=list)
+    integrated_modules: Mapped[list] = mapped_column(JSON, default=list)
     stepping_stone_projects: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(

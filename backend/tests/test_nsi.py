@@ -25,12 +25,13 @@ def _seed_db():
     db.close()
 
 
-def test_projects_lists_four_canonical_projects():
+def test_projects_lists_three_canonical_pillars():
     response = client.get("/api/n2/nsi/projects")
     assert response.status_code == 200
     data = response.json()
     project_ids = {item["project_id"] for item in data}
     assert project_ids == set(CANONICAL_PROJECT_IDS)
+    assert len(data) == 3
 
 
 def test_heritia_core_is_autonomous_b2c():
@@ -39,8 +40,31 @@ def test_heritia_core_is_autonomous_b2c():
     assert heritia["maturity_score"] == 85
     assert heritia["target_audience"] == "B2C — Particuliers"
     assert heritia["stepping_stone_projects"] == []
+    assert heritia["integrated_modules"] == []
     assert "Selys" not in heritia["perimeter"]
     assert "Aevis" not in heritia["perimeter"]
+
+
+def test_selys_unified_ecosystem_with_two_modules():
+    response = client.get("/api/n2/nsi/projects")
+    data = {item["project_id"]: item for item in response.json()}
+    assert "selys-core" in data
+    assert "selys-marketplace-core" not in data
+
+    selys = data["selys-core"]
+    assert selys["name"] == "Selys"
+    assert "Écosystème Unifié" in selys["category"]
+    assert len(selys["integrated_modules"]) == 2
+
+    module_ids = {module["id"] for module in selys["integrated_modules"]}
+    assert module_ids == {"selys-service", "selys-marketplace"}
+
+    service_module = next(m for m in selys["integrated_modules"] if m["id"] == "selys-service")
+    marketplace_module = next(m for m in selys["integrated_modules"] if m["id"] == "selys-marketplace")
+    assert "Recrutement" in service_module["label"]
+    assert "Marketplace" in marketplace_module["label"]
+    assert "Heritia" not in selys["perimeter"]
+    assert "Aevis" not in selys["perimeter"]
 
 
 def test_post_projects_rejects_missing_master_key():
@@ -94,17 +118,16 @@ def test_signals_analyze_generates_autonomous_fast_track():
     assert "recommended_actions" in fast_track
     assert "portal_actions" not in fast_track
     assert "selys_actions" not in fast_track
-    assert all("Selys" not in action for action in fast_track["recommended_actions"])
 
 
-def test_selys_and_marketplace_are_separate_projects():
-    response = client.get("/api/n2/nsi/projects")
-    data = {item["project_id"]: item for item in response.json()}
-    assert "selys-core" in data
-    assert "selys-marketplace-core" in data
-    assert data["selys-core"]["name"] == "Selys"
-    assert data["selys-marketplace-core"]["name"] == "Selys Marketplace"
-    assert data["selys-core"]["project_id"] != data["selys-marketplace-core"]["project_id"]
+def test_selys_signals_both_volets_under_selys_core():
+    response = client.get("/api/n2/nsi/signals?project_id=selys-core")
+    assert response.status_code == 200
+    signals = response.json()
+    assert len(signals) >= 2
+    volets = {signal["payload"].get("volet") for signal in signals}
+    assert "service" in volets
+    assert "marketplace" in volets
 
 
 def test_cockpit_registry_contains_nsi():

@@ -19,6 +19,13 @@ class SteppingStoneProject(BaseModel):
     target_radar_filter: TargetRadarFilter = Field(default_factory=TargetRadarFilter)
 
 
+class IntegratedModule(BaseModel):
+    id: str
+    label: str
+    subtitle: str = ""
+    features: List[str] = Field(default_factory=list)
+
+
 class NsiProjectIn(BaseModel):
     project_id: str = Field(min_length=1, max_length=64)
     name: str
@@ -29,6 +36,7 @@ class NsiProjectIn(BaseModel):
     status: str = "draft"
     technical_barriers: List[str] = Field(default_factory=list)
     core_features: List[str] = Field(default_factory=list)
+    integrated_modules: List[IntegratedModule] = Field(default_factory=list)
     stepping_stone_projects: List[SteppingStoneProject] = Field(default_factory=list)
 
 

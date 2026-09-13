@@ -5,14 +5,108 @@ const API_BASE = import.meta.env.VITE_API_URL || "/api";
 const PROJECT_ACCENTS = {
   "heritia-core": "from-emerald-400 to-cyan-400",
   "aevis-core": "from-violet-400 to-indigo-400",
-  "selys-core": "from-amber-400 to-orange-400",
-  "selys-marketplace-core": "from-rose-400 to-pink-400",
+  "selys-core": "from-amber-400 to-rose-400",
+};
+
+const PROJECT_FILTERS = {
+  "heritia-core": { structure_classes: ["C1"], naf_codes: [] },
+  "aevis-core": { structure_classes: ["C2"], naf_codes: ["4711D", "4719B", "4778C"] },
+  "selys-core": {
+    structure_classes: ["C2", "C3"],
+    naf_codes: ["8121Z", "8122Z", "8130Z", "4711D", "5610A", "5610B"],
+  },
 };
 
 function maturityTone(score) {
   if (score >= 80) return "text-emerald-300";
   if (score >= 60) return "text-amber-300";
   return "text-rose-300";
+}
+
+function ProjectCard({ project, isSelected, onSelect, onExport }) {
+  const accent = PROJECT_ACCENTS[project.project_id] || "from-slate-400 to-slate-500";
+  const modules = project.integrated_modules || [];
+
+  return (
+    <article
+      className={`glass-panel rounded-2xl border p-5 backdrop-blur-xl transition ${
+        isSelected ? "border-cyan-400/40 bg-cyan-400/5" : "border-white/10 bg-white/5"
+      }`}
+    >
+      <button type="button" onClick={() => onSelect(project.project_id)} className="w-full text-left">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">{project.name}</h2>
+            <p className="text-sm text-slate-300">{project.category}</p>
+            <p className="mt-1 text-xs uppercase tracking-wider text-cyan-200">
+              {project.target_audience}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className={`text-2xl font-bold ${maturityTone(project.maturity_score)}`}>
+              {project.maturity_score}/100
+            </div>
+            <p className="text-xs uppercase tracking-widest text-slate-400">Maturité</p>
+          </div>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+          <div
+            className={`h-full rounded-full bg-gradient-to-r ${accent}`}
+            style={{ width: `${project.maturity_score}%` }}
+          />
+        </div>
+      </button>
+
+      <p className="mt-4 text-sm text-slate-200">{project.perimeter}</p>
+
+      {modules.length > 0 ? (
+        <div className="mt-4 space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Volets intégrés
+          </h3>
+          {modules.map((module) => (
+            <div
+              key={module.id}
+              className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-4"
+            >
+              <p className="text-xs uppercase tracking-[0.15em] text-amber-200">{module.subtitle}</p>
+              <h4 className="mt-1 text-sm font-semibold text-slate-100">{module.label}</h4>
+              <ul className="mt-2 space-y-1 text-xs text-slate-300">
+                {(module.features || []).map((feature) => (
+                  <li key={feature} className="rounded-md bg-black/20 px-2 py-1">
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <>
+          <h3 className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Fonctionnalités clés
+          </h3>
+          <ul className="mt-2 space-y-1 text-sm text-slate-200">
+            {(project.core_features || []).slice(0, 4).map((item) => (
+              <li key={item} className="rounded-lg bg-black/20 px-3 py-1.5">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={() => onExport(project)}
+          className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950"
+        >
+          Exporter vers NeriaRadar
+        </button>
+      </div>
+    </article>
+  );
 }
 
 export default function NsiDashboard() {
@@ -59,21 +153,16 @@ export default function NsiDashboard() {
   }, [load]);
 
   const exportRadarFilters = (project) => {
-    const profileFilters = {
-      "heritia-core": { structure_classes: ["C1"], naf_codes: [] },
-      "aevis-core": { structure_classes: ["C2"], naf_codes: ["4711D", "4719B", "4778C"] },
-      "selys-core": { structure_classes: ["C2", "C3"], naf_codes: ["8121Z", "8122Z", "8130Z"] },
-      "selys-marketplace-core": {
-        structure_classes: ["C2"],
-        naf_codes: ["4711D", "5610A", "5610B"],
-      },
+    const filters = PROJECT_FILTERS[project.project_id] || {
+      structure_classes: [],
+      naf_codes: [],
     };
-    const filters = profileFilters[project.project_id] || { structure_classes: [], naf_codes: [] };
     const payload = {
       source: "nsi",
       project_id: project.project_id,
       target_audience: project.target_audience,
       perimeter: project.perimeter,
+      integrated_modules: project.integrated_modules || [],
       filters,
       export_label: `Exporter filtres ${project.name} vers NeriaRadar`,
     };
@@ -97,77 +186,23 @@ export default function NsiDashboard() {
     <div className="nsi-dashboard space-y-6 p-6 text-slate-100">
       <header className="glass-panel rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
         <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Neria Scout Intelligent</p>
-        <h1 className="mt-2 text-3xl font-semibold">Projets R&D autonomes</h1>
+        <h1 className="mt-2 text-3xl font-semibold">3 projets piliers autonomes</h1>
         <p className="mt-2 text-sm text-slate-300">
-          Chaque application NeriaCorp est indépendante — aucun pontage automatique de stock ou de flux
-          inter-apps.
+          Heritia (B2C), Aevis (B2B) et Selys (écosystème unifié Service + Marketplace) — aucun pontage
+          de stock ou de flux avec les autres piliers.
         </p>
       </header>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        {projects.map((project) => {
-          const accent = PROJECT_ACCENTS[project.project_id] || "from-slate-400 to-slate-500";
-          const isSelected = selectedProject?.project_id === project.project_id;
-          return (
-            <article
-              key={project.project_id}
-              className={`glass-panel rounded-2xl border p-5 backdrop-blur-xl transition ${
-                isSelected ? "border-cyan-400/40 bg-cyan-400/5" : "border-white/10 bg-white/5"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => setSelectedProjectId(project.project_id)}
-                className="w-full text-left"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold">{project.name}</h2>
-                    <p className="text-sm text-slate-300">{project.category}</p>
-                    <p className="mt-1 text-xs uppercase tracking-wider text-cyan-200">
-                      {project.target_audience}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-2xl font-bold ${maturityTone(project.maturity_score)}`}>
-                      {project.maturity_score}/100
-                    </div>
-                    <p className="text-xs uppercase tracking-widest text-slate-400">Maturité</p>
-                  </div>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
-                  <div
-                    className={`h-full rounded-full bg-gradient-to-r ${accent}`}
-                    style={{ width: `${project.maturity_score}%` }}
-                  />
-                </div>
-              </button>
-
-              <p className="mt-4 text-sm text-slate-200">{project.perimeter}</p>
-
-              <h3 className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Fonctionnalités clés
-              </h3>
-              <ul className="mt-2 space-y-1 text-sm text-slate-200">
-                {(project.core_features || []).slice(0, 3).map((item) => (
-                  <li key={item} className="rounded-lg bg-black/20 px-3 py-1.5">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={() => exportRadarFilters(project)}
-                  className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950"
-                >
-                  Exporter vers NeriaRadar
-                </button>
-              </div>
-            </article>
-          );
-        })}
+      <section className="grid gap-4 xl:grid-cols-3">
+        {projects.map((project) => (
+          <ProjectCard
+            key={project.project_id}
+            project={project}
+            isSelected={selectedProject?.project_id === project.project_id}
+            onSelect={setSelectedProjectId}
+            onExport={exportRadarFilters}
+          />
+        ))}
       </section>
 
       {selectedProject ? (

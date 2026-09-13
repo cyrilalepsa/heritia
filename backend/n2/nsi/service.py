@@ -44,36 +44,37 @@ PROJECT_FAST_TRACK_PROFILES: dict[str, dict] = {
         "export_label": "Exporter filtres commerçants C2 vers NeriaRadar",
     },
     "selys-core": {
-        "target_audience": "Particulier ↔ Artisan / Pro",
-        "perimeter": "Mise en relation, recrutement direct, Direct-Pay, Zero-Retention casier",
+        "target_audience": "Particuliers, Artisans/Pros & Membres N2O",
+        "perimeter": (
+            "Écosystème unifié Selys : volet Service/Recrutement (Direct-Pay, Zero-Retention) "
+            "+ volet Marketplace (vitrine locale, Click & Collect, Ventes Privées N2O)"
+        ),
         "neria_radar_filters": TargetRadarFilter(
             structure_classes=["C2", "C3"],
-            naf_codes=["8121Z", "8122Z", "8130Z"],
+            naf_codes=["8121Z", "8122Z", "8130Z", "4711D", "5610A", "5610B"],
         ),
         "recommended_actions": [
-            "Finaliser le workflow recrutement direct (micro-jobs, CDD, CDI)",
-            "Valider Direct-Pay hors flux NeriaCorp avec traçabilité légale",
-            "Auditer la purge Zero-Retention du casier judiciaire post-validation",
+            "Volet Service : finaliser recrutement direct (micro-jobs, CDD, CDI) et Direct-Pay",
+            "Volet Service : auditer la purge Zero-Retention du casier judiciaire",
+            "Volet Marketplace : lancer vitrine géolocalisée et Click & Collect sur zone pilote",
+            "Volet Marketplace : activer Ventes Privées / Bons Plans membres N2O",
         ],
-        "recommended_mvp": "Matching service + recrutement direct + Direct-Pay + purge casier.",
-        "export_label": "Exporter filtres artisans / pros vers NeriaRadar",
-    },
-    "selys-marketplace-core": {
-        "target_audience": "Membres N2O & commerces locaux",
-        "perimeter": "Vitrine locale géolocalisée, livraison, Ventes Privées N2O (distinct de Selys core)",
-        "neria_radar_filters": TargetRadarFilter(
-            structure_classes=["C2"],
-            naf_codes=["4711D", "5610A", "5610B"],
+        "recommended_mvp": (
+            "Plateforme Selys unifiée : matching + recrutement + marketplace locale + Ventes Privées N2O."
         ),
-        "recommended_actions": [
-            "Lancer la vitrine géolocalisée sur une zone pilote",
-            "Activer les Ventes Privées / Bons Plans membres N2O",
-            "Tester la logistique livraison locale multi-commerçants",
-        ],
-        "recommended_mvp": "Marketplace locale : catalogue géo + commandes + Ventes Privées N2O.",
-        "export_label": "Exporter filtres marketplace locale vers NeriaRadar",
+        "export_label": "Exporter filtres écosystème Selys vers NeriaRadar",
     },
 }
+
+
+def _serialize_modules(modules) -> list:
+    serialized = []
+    for item in modules or []:
+        if hasattr(item, "model_dump"):
+            serialized.append(item.model_dump())
+        elif isinstance(item, dict):
+            serialized.append(item)
+    return serialized
 
 
 def _project_out(row: NsiProject) -> NsiProjectOut:
@@ -88,6 +89,7 @@ def _project_out(row: NsiProject) -> NsiProjectOut:
         status=row.status,
         technical_barriers=row.technical_barriers or [],
         core_features=row.core_features or [],
+        integrated_modules=getattr(row, "integrated_modules", None) or [],
         stepping_stone_projects=row.stepping_stone_projects or [],
         created_at=row.created_at.isoformat() if row.created_at else None,
         updated_at=row.updated_at.isoformat() if row.updated_at else None,
@@ -116,14 +118,8 @@ def list_projects(db: Session) -> List[NsiProjectOut]:
 def upsert_project(db: Session, payload: NsiProjectIn) -> NsiProjectOut:
     row = db.query(NsiProject).filter(NsiProject.project_id == payload.project_id).first()
     data = payload.model_dump()
-    stepping = []
-    for item in payload.stepping_stone_projects:
-        if hasattr(item, "model_dump"):
-            stepping.append(item.model_dump())
-        elif isinstance(item, dict):
-            stepping.append(item)
-        else:
-            stepping.append(dict(item))
+    stepping = _serialize_modules(payload.stepping_stone_projects)
+    integrated = _serialize_modules(payload.integrated_modules)
 
     if row is None:
         row = NsiProject(
@@ -136,6 +132,7 @@ def upsert_project(db: Session, payload: NsiProjectIn) -> NsiProjectOut:
             status=data["status"],
             technical_barriers=data["technical_barriers"],
             core_features=data["core_features"],
+            integrated_modules=integrated,
             stepping_stone_projects=stepping,
         )
         db.add(row)
@@ -148,6 +145,7 @@ def upsert_project(db: Session, payload: NsiProjectIn) -> NsiProjectOut:
         row.status = data["status"]
         row.technical_barriers = data["technical_barriers"]
         row.core_features = data["core_features"]
+        row.integrated_modules = integrated
         row.stepping_stone_projects = stepping
 
     db.commit()

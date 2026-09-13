@@ -5,7 +5,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from n2.nsi.models import NsiProject, NsiSignal
-from n2.nsi.schemas import NsiProjectIn
+from n2.nsi.schemas import IntegratedModule, NsiProjectIn
 from n2.nsi.service import upsert_project
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,6 @@ CANONICAL_PROJECT_IDS = (
     "heritia-core",
     "aevis-core",
     "selys-core",
-    "selys-marketplace-core",
 )
 
 CANONICAL_PROJECTS: tuple[NsiProjectIn, ...] = (
@@ -24,8 +23,9 @@ CANONICAL_PROJECTS: tuple[NsiProjectIn, ...] = (
         category="FoodTech & Gamification",
         target_audience="B2C — Particuliers",
         perimeter=(
-            "Scan frigo et tickets de caisse personnels, génération de recettes anti-gaspillage, "
-            "gamification XP et cagnotte N2 native, vente de livres de recettes digitaux."
+            "Application grand public autonome : scan frigo et tickets de caisse personnels, "
+            "génération de recettes anti-gaspillage, gamification XP et cagnotte N2 native, "
+            "vente de livres de recettes digitaux."
         ),
         maturity_score=85,
         status="production_ready",
@@ -40,6 +40,7 @@ CANONICAL_PROJECTS: tuple[NsiProjectIn, ...] = (
             "Gamification complète N2 (XP, badges, cagnotte native)",
             "Vente de livres de recettes digitaux (Stripe Checkout N2)",
         ],
+        integrated_modules=[],
         stepping_stone_projects=[],
     ),
     NsiProjectIn(
@@ -48,7 +49,7 @@ CANONICAL_PROJECTS: tuple[NsiProjectIn, ...] = (
         category="Retail Tech & POS B2B",
         target_audience="B2B — Commerçants C2",
         perimeter=(
-            "Terminal de caisse tactile autonome, gestion de stock et inventaire "
+            "Solution de caisse tactile (POS) autonome, gestion de stock et inventaire "
             "pour TPE / commerces de proximité."
         ),
         maturity_score=72,
@@ -64,54 +65,59 @@ CANONICAL_PROJECTS: tuple[NsiProjectIn, ...] = (
             "Tableau de bord ventes et marges",
             "Export comptable et historique transactions",
         ],
+        integrated_modules=[],
         stepping_stone_projects=[],
     ),
     NsiProjectIn(
         project_id="selys-core",
         name="Selys",
-        category="Services & Recrutement Direct",
-        target_audience="Particulier ↔ Artisan / Pro",
+        category="Écosystème Unifié — Mise en relation & Marketplace",
+        target_audience="Particuliers, Artisans/Pros & Membres N2O",
         perimeter=(
-            "Mise en relation service et recrutement direct (petits boulots, CDD, CDI). "
-            "Direct-Pay : facturation et contrats directs hors flux NeriaCorp. "
-            "Casier judiciaire à l'inscription, suppression immédiate post-validation (Zero-Retention)."
+            "Plateforme globale Selys regroupant deux volets indissociables : "
+            "(1) Mise en relation directe, recrutement, Direct-Pay et Zero-Retention casier ; "
+            "(2) vitrine locale géolocalisée, Click & Collect, livraison et Ventes Privées N2O."
         ),
-        maturity_score=68,
+        maturity_score=66,
         status="pilot",
         technical_barriers=[
-            "Workflow recrutement direct conforme (CDD/CDI/micro-jobs)",
+            "Workflow recrutement direct conforme (micro-jobs, CDD, CDI)",
             "Direct-Pay hors flux NeriaCorp avec traçabilité légale",
             "Zero-Retention casier judiciaire (collecte → validation → purge immédiate)",
-        ],
-        core_features=[
-            "Matching particulier ↔ artisan / professionnel",
-            "Recrutement direct (petits boulots, CDD, CDI)",
-            "Direct-Pay : facturation et contrats directs",
-            "Casier judiciaire Zero-Retention (purge post-validation)",
-        ],
-        stepping_stone_projects=[],
-    ),
-    NsiProjectIn(
-        project_id="selys-marketplace-core",
-        name="Selys Marketplace",
-        category="Marketplace Locale & Ventes Privées",
-        target_audience="Membres N2O & commerces locaux",
-        perimeter=(
-            "Vitrine locale géolocalisée (modèle Uber), commandes et livraison locale, "
-            "Ventes Privées et Bons Plans membres N2O. Application autonome, distincte de Selys core."
-        ),
-        maturity_score=64,
-        status="draft",
-        technical_barriers=[
             "Référencement géolocalisé temps réel (style Uber)",
-            "Logistique livraison locale multi-commerçants",
+            "Logistique livraison locale et Click & Collect multi-commerçants",
             "Gestion Ventes Privées / Bons Plans membres N2O",
         ],
         core_features=[
-            "Vitrine locale géolocalisée",
-            "Commandes et livraison locale",
-            "Ventes Privées anti-gaspi / Bons Plans membres N2O",
-            "Catalogue commerçants indépendant de Selys core",
+            "Écosystème unifié Service + Marketplace sous selys-core",
+            "Matching particulier ↔ artisan / professionnel",
+            "Recrutement direct (petits boulots, CDD, CDI) avec Direct-Pay",
+            "Vitrine locale géolocalisée, commandes et livraison",
+            "Ventes Privées / Bons Plans réservés membres N2O",
+        ],
+        integrated_modules=[
+            IntegratedModule(
+                id="selys-service",
+                label="Mise en Relation / Recrutement Direct",
+                subtitle="Volet Service & Recrutement (Selys)",
+                features=[
+                    "Matching particulier ↔ artisan / professionnel",
+                    "Recrutement direct (petits boulots, CDD, CDI)",
+                    "Direct-Pay : facturation et contrats directs hors flux NeriaCorp",
+                    "Casier judiciaire Zero-Retention (purge post-validation)",
+                ],
+            ),
+            IntegratedModule(
+                id="selys-marketplace",
+                label="Selys Marketplace — Vitrine Locale & Ventes Privées N2O",
+                subtitle="Volet Commercial & Vitrine (Selys Marketplace)",
+                features=[
+                    "Vitrine locale géolocalisée (modèle Uber)",
+                    "Click & Collect et livraison hyper-proximité",
+                    "Ventes Privées anti-gaspi / Bons Plans membres N2O",
+                    "Catalogue commerçants intégré à l'écosystème Selys",
+                ],
+            ),
         ],
         stepping_stone_projects=[],
     ),
@@ -137,16 +143,18 @@ CANONICAL_SIGNALS: tuple[dict, ...] = (
         "source": "veille.travail.fr",
         "impact_score": 69,
         "project_id": "selys-core",
-        "payload": {"theme": "direct_hire", "segment": "pro_particulier"},
+        "payload": {"theme": "direct_hire", "segment": "pro_particulier", "volet": "service"},
     },
     {
         "title": "Ventes privées locales et livraison hyper-proximité",
         "source": "veille.marketplace.fr",
         "impact_score": 67,
-        "project_id": "selys-marketplace-core",
-        "payload": {"theme": "local_marketplace", "segment": "N2O"},
+        "project_id": "selys-core",
+        "payload": {"theme": "local_marketplace", "segment": "N2O", "volet": "marketplace"},
     },
 )
+
+STALE_PROJECT_IDS = ("selys-marketplace-core",)
 
 STALE_SIGNAL_TITLES = (
     "Demande B2B cockpit stock cuisine + marketplace invendus",
@@ -167,15 +175,30 @@ def _ensure_nsi_schema(db: Session) -> None:
         db.execute(text("ALTER TABLE nsi_projects ADD COLUMN target_audience VARCHAR(255) DEFAULT ''"))
     if "perimeter" not in columns:
         db.execute(text("ALTER TABLE nsi_projects ADD COLUMN perimeter TEXT DEFAULT ''"))
+    if "integrated_modules" not in columns:
+        db.execute(text("ALTER TABLE nsi_projects ADD COLUMN integrated_modules JSON DEFAULT '[]'"))
     db.commit()
 
 
+def _purge_stale_marketplace_signals(db: Session) -> None:
+    stale = db.query(NsiSignal).filter(NsiSignal.project_id == "selys-marketplace-core").all()
+    for signal in stale:
+        db.delete(signal)
+        logger.info("NSI seed: removed signal tied to deprecated selys-marketplace-core")
+
+
 def seed_nsi_defaults(db: Session) -> None:
-    """Reset and inject canonical NSI projects (100% autonomous, no cross-app bridging)."""
+    """Reset and inject the 3 canonical NSI pillar projects (strict independence, no cross-app bridging)."""
     _ensure_nsi_schema(db)
     for project in CANONICAL_PROJECTS:
         upsert_project(db, project)
         logger.info("NSI seed: refreshed project %s", project.project_id)
+
+    for stale_id in STALE_PROJECT_IDS:
+        stale = db.query(NsiProject).filter(NsiProject.project_id == stale_id).first()
+        if stale:
+            db.delete(stale)
+            logger.info("NSI seed: removed deprecated project %s", stale_id)
 
     stale_projects = (
         db.query(NsiProject)
@@ -185,6 +208,8 @@ def seed_nsi_defaults(db: Session) -> None:
     for row in stale_projects:
         db.delete(row)
         logger.info("NSI seed: removed stale project %s", row.project_id)
+
+    _purge_stale_marketplace_signals(db)
 
     for title in STALE_SIGNAL_TITLES:
         stale_signals = db.query(NsiSignal).filter(NsiSignal.title == title).all()
