@@ -36,9 +36,11 @@ CANONICAL_PROJECTS: tuple[NsiProjectIn, ...] = (
         ],
         core_features=[
             "Scan intelligent frigo & tickets de caisse (Cloudinary + IA N2)",
-            "Génération de recettes anti-gaspillage sur-mesure",
-            "Gamification complète N2 (XP, badges, cagnotte native)",
-            "Vente de livres de recettes digitaux (Stripe Checkout N2)",
+            (
+                "Génération de recettes anti-gaspillage sur-mesure selon 4 profils santé : "
+                "Normal, Diabète (IG bas), Cholestérol, et Perte de poids"
+            ),
+            "Gamification native N2 (XP, badges, cagnotte) et vente d'ebooks de recettes digitaux",
         ],
         integrated_modules=[],
         stepping_stone_projects=[],
