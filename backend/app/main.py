@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, marketplace, profil, recipes
+from app.api import auth, marketplace, n2_heritia, profil, recipes
 from app.config import settings
 from app.database import Base, engine
 
@@ -25,6 +25,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(profil.router, prefix="/api")
 app.include_router(recipes.router, prefix="/api")
 app.include_router(marketplace.router, prefix="/api")
+app.include_router(n2_heritia.router, prefix="/api")
 
 
 @app.get("/api/health")

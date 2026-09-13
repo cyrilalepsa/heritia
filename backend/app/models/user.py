@@ -67,6 +67,8 @@ class User(Base):
     referral_free_years_claimed: Mapped[int] = mapped_column(Integer, default=0)
 
     gold_badges_count: Mapped[int] = mapped_column(Integer, default=0)
+    xp_total: Mapped[int] = mapped_column(Integer, default=0)
+    wallet_cents: Mapped[int] = mapped_column(Integer, default=0)
     ebook_unlocked: Mapped[bool] = mapped_column(Boolean, default=False)
 
     stripe_account_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import stripe
 from sqlalchemy.orm import Session
@@ -15,10 +15,14 @@ from app.models.user import User
 APPLICATION_FEE_AMOUNT = 0
 
 
-def _configure_stripe() -> None:
+def configure_stripe() -> None:
     if not settings.stripe_secret_key:
         raise RuntimeError("HERITIA_STRIPE_SECRET_KEY is not configured")
     stripe.api_key = settings.stripe_secret_key
+
+
+def _configure_stripe() -> None:
+    configure_stripe()
 
 
 def ensure_express_account(db: Session, user: User) -> str:
@@ -96,3 +100,25 @@ def create_destination_payment_intent(
         "payment_intent_id": intent["id"],
         "application_fee_amount": APPLICATION_FEE_AMOUNT,
     }
+
+
+def handle_webhook_event(db: Session, event: Dict[str, Any]) -> Dict[str, Any]:
+    """Process Stripe webhook events for HERITIA marketplace checkout."""
+    event_type = event.get("type") if isinstance(event, dict) else None
+    handled = False
+    detail = "ignored"
+
+    if event_type == "checkout.session.completed":
+        data_object = (event.get("data") or {}).get("object") or {}
+        metadata = data_object.get("metadata") or {}
+        listing_id = metadata.get("heritia_listing_id")
+        if listing_id:
+            listing = db.query(EbookListing).filter(EbookListing.id == int(listing_id)).first()
+            if listing:
+                handled = True
+                detail = "checkout.session.completed processed"
+    elif event_type == "payment_intent.succeeded":
+        handled = True
+        detail = "payment_intent.succeeded acknowledged"
+
+    return {"event_type": event_type, "handled": handled, "detail": detail}

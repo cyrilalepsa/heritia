@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from pydantic import Field, computed_field
+from pydantic import AliasChoices, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -42,7 +42,10 @@ class Settings(BaseSettings):
     )
 
     # N2 / shared NeriaCorp infrastructure (no HERITIA_ prefix)
-    n2_master_key: str = Field(default="", validation_alias="N2_MASTER_KEY")
+    n2_master_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("N2_MASTER_KEY", "NERIA_MASTER_KEY", "X_MASTER_KEY"),
+    )
     resend_api_key: str = Field(default="", validation_alias="RESEND_API_KEY")
     resend_from_email: str = Field(
         default="heritia@neriacorp.com",
@@ -60,9 +63,23 @@ class Settings(BaseSettings):
         return parts or list(DEFAULT_CORS_ORIGINS)
 
     @property
+    def master_key(self) -> str:
+        """Shared NeriaCorp master key used for N2 server-to-server calls."""
+        return self.n2_master_key
+
+    @property
+    def master_key_configured(self) -> bool:
+        return bool(self.master_key)
+
+    @property
     def jwt_secret(self) -> str:
         """Prefer N2 Master Key; fall back to local secret for development."""
-        return self.n2_master_key or self.secret_key
+        return self.master_key or self.secret_key
+
+    @property
+    def allow_master_key_webhook_bypass(self) -> bool:
+        """Allow X-Master-Key instead of stripe-signature in non-production only."""
+        return not self.is_production
 
     @property
     def is_production(self) -> bool:
