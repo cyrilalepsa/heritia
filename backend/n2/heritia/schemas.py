@@ -1,37 +1,30 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class ScanRequest(BaseModel):
-    user_id: Optional[int] = None
-    image_base64: Optional[str] = Field(default=None, description="Base64 image (fridge or receipt)")
-    image_url: Optional[str] = None
+    user_id: Optional[int] = Field(default=None, ge=1)
+    image_url: HttpUrl = Field(description="Cloudinary HTTPS URL (fridge or receipt)")
     scan_type: str = Field(default="fridge", pattern="^(fridge|receipt)$")
 
 
-class ScanItem(BaseModel):
-    label: str
-    quantity: Optional[str] = None
+class DetectedIngredient(BaseModel):
+    name: str
+    quantity_estimate: Optional[str] = None
+    expiry_date: Optional[date] = None
     expiry_hint: Optional[str] = None
 
 
 class ScanResponse(BaseModel):
     scan_type: str
-    items: List[ScanItem]
+    image_url: str
+    ingredients: List[DetectedIngredient]
     summary: str
-
-
-class GamificationXpRequest(BaseModel):
-    user_id: int = Field(ge=1)
-    xp_delta: int = Field(description="XP gained or lost")
-    wallet_cents_delta: int = Field(
-        default=0,
-        description="Cagnotte adjustment in cents (can be negative)",
-    )
-    reason: Optional[str] = None
+    gamification: Optional["GamificationXpResponse"] = None
 
 
 class GamificationXpResponse(BaseModel):
@@ -40,10 +33,14 @@ class GamificationXpResponse(BaseModel):
     wallet_cents: int
     gold_badges_count: int
     ebook_unlocked: bool
+    xp_awarded: int = 0
+    wallet_cents_awarded: int = 0
+    badges_unlocked: List[str] = Field(default_factory=list)
+    firebase_synced: bool = False
 
 
 class RecipeGenerateRequest(BaseModel):
-    user_id: Optional[int] = None
+    user_id: Optional[int] = Field(default=None, ge=1)
     ingredients: List[str] = Field(min_length=1)
     health_options: List[str] = Field(default_factory=list)
     servings: int = Field(default=2, ge=1, le=12)
@@ -57,3 +54,7 @@ class GeneratedRecipe(BaseModel):
 
 class RecipeGenerateResponse(BaseModel):
     recipes: List[GeneratedRecipe]
+    gamification: Optional[GamificationXpResponse] = None
+
+
+ScanResponse.model_rebuild()

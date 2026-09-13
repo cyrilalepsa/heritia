@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     cloudinary_api_key: str = Field(default="", validation_alias="CLOUDINARY_API_KEY")
     cloudinary_api_secret: str = Field(default="", validation_alias="CLOUDINARY_API_SECRET")
     cloudinary_folder: str = Field(default="heritia", validation_alias="CLOUDINARY_FOLDER")
+    firebase_project_id: str = Field(default="", validation_alias="FIREBASE_PROJECT_ID")
+    firebase_credentials_json: str = Field(default="", validation_alias="FIREBASE_CREDENTIALS_JSON")
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -106,6 +108,10 @@ class Settings(BaseSettings):
     @property
     def resend_configured(self) -> bool:
         return bool(self.resend_api_key and self.resend_from_email)
+
+    @property
+    def firebase_configured(self) -> bool:
+        return bool(self.firebase_project_id)
 
     @property
     def cloudinary_configured(self) -> bool:
