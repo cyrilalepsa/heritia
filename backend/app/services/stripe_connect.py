@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import stripe
 from sqlalchemy.orm import Session
@@ -102,23 +102,44 @@ def create_destination_payment_intent(
     }
 
 
-def handle_webhook_event(db: Session, event: Dict[str, Any]) -> Dict[str, Any]:
-    """Process Stripe webhook events for HERITIA marketplace checkout."""
-    event_type = event.get("type") if isinstance(event, dict) else None
-    handled = False
-    detail = "ignored"
+def create_checkout_session(
+    db: Session,
+    *,
+    listing: EbookListing,
+    buyer: User,
+) -> dict:
+    """Stripe Checkout session for ebook purchase (webhook unlocks access)."""
+    _configure_stripe()
+    if not listing.active:
+        raise ValueError("Ebook listing is not active")
 
-    if event_type == "checkout.session.completed":
-        data_object = (event.get("data") or {}).get("object") or {}
-        metadata = data_object.get("metadata") or {}
-        listing_id = metadata.get("heritia_listing_id")
-        if listing_id:
-            listing = db.query(EbookListing).filter(EbookListing.id == int(listing_id)).first()
-            if listing:
-                handled = True
-                detail = "checkout.session.completed processed"
-    elif event_type == "payment_intent.succeeded":
-        handled = True
-        detail = "payment_intent.succeeded acknowledged"
-
-    return {"event_type": event_type, "handled": handled, "detail": detail}
+    session = stripe.checkout.Session.create(
+        mode="payment",
+        line_items=[
+            {
+                "price_data": {
+                    "currency": "eur",
+                    "unit_amount": listing.price,
+                    "product_data": {"name": listing.title},
+                },
+                "quantity": 1,
+            }
+        ],
+        payment_intent_data={
+            "application_fee_amount": APPLICATION_FEE_AMOUNT,
+            "transfer_data": {"destination": listing.stripe_account_id},
+            "metadata": {
+                "heritia_listing_id": str(listing.id),
+                "heritia_buyer_id": str(buyer.id),
+                "heritia_seller_id": str(listing.user_id),
+            },
+        },
+        metadata={
+            "heritia_listing_id": str(listing.id),
+            "heritia_buyer_id": str(buyer.id),
+            "heritia_seller_id": str(listing.user_id),
+        },
+        success_url="{0}/gamification?checkout=success".format(settings.public_app_url),
+        cancel_url="{0}/gamification?checkout=cancel".format(settings.public_app_url),
+    )
+    return {"checkout_session_id": session["id"], "checkout_url": session["url"]}
