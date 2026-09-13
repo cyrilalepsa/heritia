@@ -1,6 +1,13 @@
-export const APP_URL =
-  import.meta.env.VITE_APP_URL || "http://localhost:5174";
+const devAppUrl = "http://localhost:5174";
 
+/** Public app URL — N2 ingress in prod; localhost in dev. */
+export const APP_URL = import.meta.env.VITE_APP_URL
+  ? import.meta.env.VITE_APP_URL
+  : import.meta.env.PROD && typeof window !== "undefined"
+    ? window.location.origin
+    : devAppUrl;
+
+/** Same-origin /api via N2 Single Ingress in production. */
 export const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
 export const HEALTH_OPTION_SURCHARGE = 7;
